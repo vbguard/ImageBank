@@ -1,6 +1,6 @@
 // const createError = require('http-errors');
 const express = require('express');
-const passport = require('passport');
+// const passport = require('passport');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
@@ -8,7 +8,7 @@ const sassMiddleware = require('node-sass-middleware');
 const helmet = require('helmet');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
-
+const axios = require('axios');
 const swaggerDocument = require('../config/swagger.json');
 
 // Import Router
@@ -16,9 +16,6 @@ const router = require('./routes/routes');
 const config = require('../config/config');
 // start App - Express
 const app = express();
-
-// Connect Mongo DB
-require('../config/mongodb')();
 
 const isDevMode = process.env.NODE_ENV !== 'production';
 // view engine setup
@@ -47,19 +44,25 @@ app
       indentedSyntax: true, // true = .sass and false = .scss
       sourceMap: true
     })
-  )
-  .use(passport.initialize())
-  .use(passport.session());
+  );
+// .use(passport.initialize())
+// .use(passport.session());
 
-require('../config/passport')(passport);
+// require('../config/passport')(passport);
 
 app.use(express.static(path.join(__dirname, 'static')));
 
 app
-  .get('/', (req, res) => {
-    res.render('index', { name: 'John' });
+  .get('/', async (req, res) => {
+    const query = req.query;
+    const { data } = await axios.get(
+      `http://localhost:5000/api/v1/images?q=${query.q}`
+    );
+
+    res.render('index', { name: 'John', images: data });
   })
-  .use(config.apiPATH + config.apiVersion, router)
+  .use('/images', express.static('uploads'))
+  .use('/api/v1', router)
   .use('/doc', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
   // catch 404 and forward to error handler
